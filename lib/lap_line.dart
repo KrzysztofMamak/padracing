@@ -6,7 +6,7 @@ import 'package:flame/palette.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' hide Particle, World;
 import 'package:flutter/material.dart' hide Image, Gradient;
 
-import 'car.dart';
+import 'vehicle/car.dart';
 import 'game_colors.dart';
 
 class LapLine extends BodyComponent {

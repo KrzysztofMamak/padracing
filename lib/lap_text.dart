@@ -3,15 +3,17 @@ import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart' hide Image, Gradient;
 import 'package:google_fonts/google_fonts.dart';
 
-import 'car.dart';
 import 'game.dart';
+import 'vehicle/vehicle.dart';
 
 class LapText extends PositionComponent with HasGameRef<PadRacingGame> {
-  LapText({required this.car, required Vector2 position})
-      : super(position: position);
+  LapText({
+    required this.vehicle,
+    required Vector2 position,
+  }) : super(position: position);
 
-  final Car car;
-  late final ValueNotifier<int> lapNotifier = car.lapNotifier;
+  final Vehicle vehicle;
+  late final ValueNotifier<int> lapNotifier = vehicle.lapNotifier;
   late final TextComponent _timePassedComponent;
 
   @override
@@ -19,7 +21,7 @@ class LapText extends PositionComponent with HasGameRef<PadRacingGame> {
     super.onLoad();
     final textStyle = GoogleFonts.vt323(
       fontSize: 35,
-      color: car.paint.color,
+      color: vehicle.paint.color,
     );
     final defaultRenderer = TextPaint(style: textStyle);
     final lapCountRenderer = TextPaint(
@@ -56,7 +58,7 @@ class LapText extends PositionComponent with HasGameRef<PadRacingGame> {
     add(_timePassedComponent);
 
     _backgroundPaint = Paint()
-      ..color = car.paint.color
+      ..color = vehicle.paint.color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 

@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
-import 'car.dart';
+import 'vehicle/car.dart';
 import 'tire.dart';
 
 class Trail extends Component with HasPaint {

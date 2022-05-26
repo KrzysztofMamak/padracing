@@ -1,91 +1,128 @@
+import 'dart:ui';
+
+import 'package:flame/extensions.dart';
 import 'package:flame/palette.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' hide Particle, World;
-import 'package:flutter/material.dart' hide Image, Gradient;
 import 'package:flutter/services.dart';
 
-import 'vehicle/car.dart';
-import 'game.dart';
-import 'trail.dart';
+import '../game_colors.dart';
+import 'vehicle.dart';
 
-class Tire extends BodyComponent<PadRacingGame> {
-  Tire({
-    required this.car,
-    required this.pressedKeys,
-    required this.isFrontTire,
-    required this.isLeftTire,
-    required this.jointDef,
-    this.isTurnableTire = false,
-  }) : super(
-          paint: Paint()
-            ..color = car.paint.color
-            ..strokeWidth = 0.2
-            ..style = PaintingStyle.stroke,
-          priority: 2,
-        );
+class Tank extends Vehicle {
+  Tank({
+    required super.playerNumber,
+    required super.cameraComponent,
+  });
 
+  static final colors = [
+    GameColors.green.color,
+    GameColors.blue.color,
+  ];
+
+  late final Image _image;
+  late final _renderPosition = -size.toOffset() / 2;
+  late final _scaledRect = (size * scale).toRect();
+  late final _renderRect = _renderPosition & size;
+  Set<LogicalKeyboardKey> pressedKeys = {};
   static const double _backTireMaxDriveForce = 300.0;
   static const double _frontTireMaxDriveForce = 600.0;
   static const double _backTireMaxLateralImpulse = 8.5;
   static const double _frontTireMaxLateralImpulse = 7.5;
+  late final double _maxDriveForce = _frontTireMaxDriveForce;
+  late final double _maxLateralImpulse = _frontTireMaxLateralImpulse;
 
-  final Car car;
-  final size = Vector2(0.5, 1.25);
-  late final RRect _renderRect = RRect.fromLTRBR(
-    -size.x,
-    -size.y,
-    size.x,
-    size.y,
-    const Radius.circular(0.3),
-  );
-
-  final Set<LogicalKeyboardKey> pressedKeys;
-
-  late final double _maxDriveForce =
-      isFrontTire ? _frontTireMaxDriveForce : _backTireMaxDriveForce;
-  late final double _maxLateralImpulse =
-      isFrontTire ? _frontTireMaxLateralImpulse : _backTireMaxLateralImpulse;
-
-  // Make mutable if ice or something should be implemented
+// Make mutable if ice or something should be implemented
   final double _currentTraction = 1.0;
 
   final double _maxForwardSpeed = 250.0;
   final double _maxBackwardSpeed = -40.0;
 
-  final RevoluteJointDef jointDef;
   late final RevoluteJoint joint;
-  final bool isTurnableTire;
-  final bool isFrontTire;
-  final bool isLeftTire;
 
   final double _lockAngle = 0.6;
   final double _turnSpeedPerSecond = 4;
 
   final Paint _black = BasicPalette.black.paint();
 
+  final vertices = <Vector2>[
+    Vector2(1.5, -5.0),
+    Vector2(1.0, -2.5),
+    Vector2(3.8, 0.5),
+    Vector2(0.0, 5.0),
+    Vector2(-1.0, 5.0),
+    Vector2(-2.8, 0.5),
+    Vector2(-3.0, -2.5),
+    Vector2(-1.5, -6.0),
+  ];
+
   @override
   Future<void> onLoad() async {
     super.onLoad();
-    gameRef.cameraWorld.add(Trail(car: car, tire: this));
+
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder, _scaledRect);
+    final path = Path();
+    paint.color = colors[playerNumber];
+    final bodyPaint = Paint()..color = paint.color;
+    for (var i = 0.0; i < _scaledRect.width / 4; i++) {
+      bodyPaint.color = bodyPaint.color.darken(0.1);
+      path.reset();
+      final offsetVertices = vertices
+          .map(
+            (v) =>
+                v.toOffset() * scale -
+                Offset(i * v.x.sign, i * v.y.sign) +
+                _scaledRect.bottomRight / 2,
+          )
+          .toList();
+      path.addPolygon(offsetVertices, true);
+      canvas.drawPath(path, bodyPaint);
+    }
+    final picture = recorder.endRecording();
+    _image = await picture.toImage(
+      _scaledRect.width.toInt(),
+      _scaledRect.height.toInt(),
+    );
   }
 
   @override
   Body createBody() {
-    final jointAnchor = isFrontTire
-        ? Vector2(isLeftTire ? -3.0 : 3.0, 3.5)
-        : Vector2(isLeftTire ? -3.0 : 3.0, -4.25);
+    pressedKeys = gameRef.pressedKeySets[playerNumber];
 
+    final startPosition =
+        Vector2(20, 30) + Vector2(15, 0) * playerNumber.toDouble();
     final def = BodyDef()
       ..type = BodyType.dynamic
-      ..position = car.body.position + jointAnchor;
-    final body = world.createBody(def)..userData = this;
+      ..position = startPosition;
+    final body = world.createBody(def)
+      ..userData = this
+      ..angularDamping = 3.0;
 
-    final polygonShape = PolygonShape()..setAsBoxXY(0.5, 1.25);
-    body.createFixtureFromShape(polygonShape, 1.0).userData = this;
+    final jointAnchor = Vector2(-3.0, 3.5);
 
-    jointDef.bodyB = body;
+    final defT = BodyDef()
+      ..type = BodyType.dynamic
+      ..position = body.position + jointAnchor;
+    final bodyT = world.createBody(defT)..userData = this;
+
+    final jointDef = RevoluteJointDef()
+      ..bodyA = body
+      ..enableLimit = true
+      ..lowerAngle = 0.0
+      ..upperAngle = 0.0
+      ..localAnchorB.setZero();
+
+    jointDef.bodyB = bodyT;
     jointDef.localAnchorA.setFrom(jointAnchor);
     world.createJoint(joint = RevoluteJoint(jointDef));
     joint.setLimits(0, 0);
+
+    final shape = PolygonShape()..set(vertices);
+    final fixtureDef = FixtureDef(shape)
+      ..density = 0.2
+      ..restitution = 2.0;
+    body.createFixture(fixtureDef);
+
     return body;
   }
 
@@ -98,12 +135,17 @@ class Tire extends BodyComponent<PadRacingGame> {
         _updateDrive();
       }
     }
+    cameraComponent.viewfinder.position = body.position;
   }
 
   @override
   void render(Canvas canvas) {
-    canvas.drawRRect(_renderRect, _black);
-    canvas.drawRRect(_renderRect, paint);
+    canvas.drawImageRect(
+      _image,
+      _scaledRect,
+      _renderRect,
+      paint,
+    );
   }
 
   void _updateFriction() {
@@ -162,7 +204,7 @@ class Tire extends BodyComponent<PadRacingGame> {
       desiredAngle += _lockAngle;
       isTurning = true;
     }
-    if (isTurnableTire && isTurning) {
+    if (isTurning) {
       final turnPerTimeStep = _turnSpeedPerSecond * dt;
       final angleNow = joint.jointAngle();
       final angleToTurn = (desiredAngle - angleNow)
@@ -176,7 +218,7 @@ class Tire extends BodyComponent<PadRacingGame> {
     body.applyTorque(desiredTorque);
   }
 
-  // Cached Vectors to reduce unnecessary object creation.
+// Cached Vectors to reduce unnecessary object creation.
   final Vector2 _worldLeft = Vector2(1.0, 0.0);
   final Vector2 _worldUp = Vector2(0.0, -1.0);
 

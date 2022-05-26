@@ -12,10 +12,12 @@ import 'package:flutter/services.dart';
 
 import 'background.dart';
 import 'ball.dart';
-import 'car.dart';
 import 'game_colors.dart';
 import 'lap_line.dart';
 import 'lap_text.dart';
+import 'vehicle/car.dart';
+import 'vehicle/tank.dart';
+import 'vehicle/vehicle.dart';
 import 'wall.dart';
 
 final List<Map<LogicalKeyboardKey, LogicalKeyboardKey>> playersKeys = [
@@ -46,9 +48,9 @@ class PadRacingGame extends Forge2DGame with KeyboardEvents {
   late CameraComponent startCamera;
   late List<Map<LogicalKeyboardKey, LogicalKeyboardKey>> activeKeyMaps;
   late List<Set<LogicalKeyboardKey>> pressedKeySets;
-  final cars = <Car>[];
+  final cars = <Vehicle>[];
   bool isGameOver = true;
-  Car? winner;
+  Vehicle? winner;
   double _timePassed = 0;
 
   @override
@@ -164,16 +166,24 @@ class PadRacingGame extends Forge2DGame with KeyboardEvents {
     addAll(cameras);
 
     for (var i = 0; i < numberOfPlayers; i++) {
-      final car = Car(playerNumber: i, cameraComponent: cameras[i]);
+      final vehicle = i.isEven
+          ? Car(
+              playerNumber: i,
+              cameraComponent: cameras[i],
+            )
+          : Tank(
+              playerNumber: i,
+              cameraComponent: cameras[i],
+            );
       final lapText = LapText(
-        car: car,
+        vehicle: vehicle,
         position: -cameras[i].viewport.size / 2 + Vector2.all(100),
       );
 
-      car.lapNotifier.addListener(() {
-        if (car.lapNotifier.value > numberOfLaps) {
+      vehicle.lapNotifier.addListener(() {
+        if (vehicle.lapNotifier.value > numberOfLaps) {
           isGameOver = true;
-          winner = car;
+          winner = vehicle;
           overlays.add('gameover');
           lapText.addAll([
             ScaleEffect.by(
@@ -191,8 +201,8 @@ class PadRacingGame extends Forge2DGame with KeyboardEvents {
           );
         }
       });
-      cars.add(car);
-      cameraWorld.add(car);
+      cars.add(vehicle);
+      cameraWorld.add(vehicle);
       cameras[i].viewport.addAll([lapText, mapCameras[i]]);
     }
 

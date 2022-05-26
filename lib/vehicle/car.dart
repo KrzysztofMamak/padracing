@@ -1,18 +1,17 @@
 import 'dart:ui';
 
-import 'package:flame/experimental.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' hide Particle, World;
-import 'package:flutter/material.dart' hide Image, Gradient;
 
-import 'game.dart';
-import 'game_colors.dart';
-import 'lap_line.dart';
-import 'tire.dart';
+import '../game_colors.dart';
+import '../tire.dart';
+import 'vehicle.dart';
 
-class Car extends BodyComponent<PadRacingGame> {
-  Car({required this.playerNumber, required this.cameraComponent})
-      : super(priority: 3);
+class Car extends Vehicle {
+  Car({
+    required super.playerNumber,
+    required super.cameraComponent,
+  });
 
   static final colors = [
     GameColors.green.color,
@@ -20,13 +19,7 @@ class Car extends BodyComponent<PadRacingGame> {
   ];
 
   late final List<Tire> tires;
-  final ValueNotifier<int> lapNotifier = ValueNotifier<int>(1);
-  final int playerNumber;
-  final Set<LapLine> passedStartControl = {};
-  final CameraComponent cameraComponent;
   late final Image _image;
-  final size = const Size(6, 10);
-  final scale = 10.0;
   late final _renderPosition = -size.toOffset() / 2;
   late final _scaledRect = (size * scale).toRect();
   late final _renderRect = _renderPosition & size;

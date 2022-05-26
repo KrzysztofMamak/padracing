@@ -5,7 +5,7 @@ import 'package:flame/extensions.dart';
 import 'package:flame/palette.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' hide Particle, World;
 
-import 'car.dart';
+import 'vehicle/car.dart';
 import 'game.dart';
 import 'game_colors.dart';
 import 'wall.dart';
