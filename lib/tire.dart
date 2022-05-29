@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'vehicle/car.dart';
 import 'game.dart';
-import 'trail.dart';
+import 'tire_trail.dart';
 
 class Tire extends BodyComponent<PadRacingGame> {
   Tire({
@@ -65,7 +65,7 @@ class Tire extends BodyComponent<PadRacingGame> {
   @override
   Future<void> onLoad() async {
     super.onLoad();
-    gameRef.cameraWorld.add(Trail(car: car, tire: this));
+    gameRef.cameraWorld.add(TireTrail(vehicle: car, tire: this));
   }
 
   @override
