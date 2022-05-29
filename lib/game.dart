@@ -71,8 +71,8 @@ class PadRacingGame extends Forge2DGame with KeyboardEvents {
       ...createBalls(trackSize, walls, bigBall),
     ]);
 
-    addContactCallback(CarLapContactCallback());
-    addContactCallback(CarBallContactCallback());
+    addContactCallback(VehicleLapContactCallback());
+    addContactCallback(VehicleBallContactCallback());
     openMenu();
   }
 

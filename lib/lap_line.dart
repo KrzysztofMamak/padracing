@@ -5,8 +5,8 @@ import 'package:flame/extensions.dart';
 import 'package:flame/palette.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' hide Particle, World;
 import 'package:flutter/material.dart' hide Image, Gradient;
+import 'package:padracing/vehicle/vehicle.dart';
 
-import 'vehicle/car.dart';
 import 'game_colors.dart';
 
 class LapLine extends BodyComponent {
@@ -86,16 +86,16 @@ class LapLine extends BodyComponent {
   }
 }
 
-class CarLapContactCallback extends ContactCallback<Car, LapLine> {
+class VehicleLapContactCallback extends ContactCallback<Vehicle, LapLine> {
   @override
-  void begin(Car car, LapLine groundSensor, Contact contact) {
-    if (groundSensor.isFinish && car.passedStartControl.length == 2) {
-      car.lapNotifier.value++;
-      car.passedStartControl.clear();
+  void begin(Vehicle vehicle, LapLine groundSensor, Contact contact) {
+    if (groundSensor.isFinish && vehicle.passedStartControl.length == 2) {
+      vehicle.lapNotifier.value++;
+      vehicle.passedStartControl.clear();
     } else if (!groundSensor.isFinish) {
-      car.passedStartControl
+      vehicle.passedStartControl
           .removeWhere((passedControl) => passedControl.id > groundSensor.id);
-      car.passedStartControl.add(groundSensor);
+      vehicle.passedStartControl.add(groundSensor);
     }
   }
 }

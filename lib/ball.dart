@@ -4,8 +4,8 @@ import 'dart:ui';
 import 'package:flame/extensions.dart';
 import 'package:flame/palette.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' hide Particle, World;
+import 'package:padracing/vehicle/vehicle.dart';
 
-import 'vehicle/car.dart';
 import 'game.dart';
 import 'game_colors.dart';
 import 'wall.dart';
@@ -92,11 +92,11 @@ List<Ball> createBalls(Vector2 trackSize, List<Wall> walls, Ball bigBall) {
   return balls;
 }
 
-class CarBallContactCallback extends ContactCallback<Car, Ball> {
+class VehicleBallContactCallback extends ContactCallback<Vehicle, Ball> {
   @override
-  void begin(Car car, Ball ball, Contact contact) {
+  void begin(Vehicle vehicle, Ball ball, Contact contact) {
     if (ball.isMovable) {
-      final body = car.body;
+      final body = vehicle.body;
       body.applyAngularImpulse(3 * body.mass * 100);
     }
   }
