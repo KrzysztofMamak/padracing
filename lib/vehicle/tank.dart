@@ -5,7 +5,10 @@ import 'package:flame/palette.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' hide Particle, World;
 import 'package:flutter/services.dart';
 
+import '../cannon.dart';
+import '../caterpillar.dart';
 import '../game_colors.dart';
+import '../tank_trail.dart';
 import 'vehicle.dart';
 
 class Tank extends Vehicle {
@@ -21,7 +24,7 @@ class Tank extends Vehicle {
 
   late final Image _image;
   late final _renderPosition = -size.toOffset() / 2;
-  late final _scaledRect = (size * scale).toRect();
+  late final _scaledRect = (size * 5).toRect();
   late final _renderRect = _renderPosition & size;
   Set<LogicalKeyboardKey> pressedKeys = {};
   static const double _backTireMaxDriveForce = 300.0;
@@ -34,26 +37,24 @@ class Tank extends Vehicle {
 // Make mutable if ice or something should be implemented
   final double _currentTraction = 1.0;
 
-  final double _maxForwardSpeed = 250.0;
-  final double _maxBackwardSpeed = -40.0;
+  final double _maxForwardSpeed = 500.0;
+  final double _maxBackwardSpeed = -80.0;
 
   late final RevoluteJoint joint;
 
-  final double _lockAngle = 0.6;
   final double _turnSpeedPerSecond = 4;
+  late final Cannon cannon;
 
   final Paint _black = BasicPalette.black.paint();
 
   final vertices = <Vector2>[
-    Vector2(1.5, -5.0),
-    Vector2(1.0, -2.5),
-    Vector2(3.8, 0.5),
-    Vector2(0.0, 5.0),
-    Vector2(-1.0, 5.0),
-    Vector2(-2.8, 0.5),
-    Vector2(-3.0, -2.5),
-    Vector2(-1.5, -6.0),
+    Vector2(6, -6),
+    Vector2(-6, -6),
+    Vector2(-6, 6),
+    Vector2(6, 6),
   ];
+
+  late final List<Caterpillar> caterpillars;
 
   @override
   Future<void> onLoad() async {
@@ -123,6 +124,26 @@ class Tank extends Vehicle {
       ..restitution = 2.0;
     body.createFixture(fixtureDef);
 
+    caterpillars = List.generate(
+      4,
+      (i) {
+        final isLeftCaterpillar = i.isEven;
+        return Caterpillar(
+          tank: this,
+          pressedKeys: gameRef.pressedKeySets[playerNumber],
+          isLeftCaterpillar: isLeftCaterpillar,
+          jointDef: jointDef,
+        );
+      },
+    );
+
+    cannon = Cannon(tank: this, jointDef: jointDef);
+
+    gameRef.cameraWorld.addAll(caterpillars);
+    gameRef.cameraWorld.add(cannon);
+
+    gameRef.cameraWorld.add(TankTrail(tank: this));
+
     return body;
   }
 
@@ -175,6 +196,9 @@ class Tank extends Vehicle {
     if (pressedKeys.contains(LogicalKeyboardKey.arrowDown)) {
       desiredSpeed += _maxBackwardSpeed;
     }
+    if (pressedKeys.contains(LogicalKeyboardKey.arrowLeft) || pressedKeys.contains(LogicalKeyboardKey.arrowRight)) {
+      desiredSpeed /= 3;
+    }
 
     final currentForwardNormal = body.worldVector(Vector2(0.0, 1.0));
     final currentSpeed = _forwardVelocity.dot(currentForwardNormal);
@@ -196,24 +220,21 @@ class Tank extends Vehicle {
     var isTurning = false;
     if (pressedKeys.contains(LogicalKeyboardKey.arrowLeft)) {
       desiredTorque = -15.0;
-      desiredAngle = -_lockAngle;
+      desiredAngle = 0.05;
       isTurning = true;
     }
     if (pressedKeys.contains(LogicalKeyboardKey.arrowRight)) {
       desiredTorque += 15.0;
-      desiredAngle += _lockAngle;
+      desiredAngle = -0.05;
       isTurning = true;
     }
     if (isTurning) {
       final turnPerTimeStep = _turnSpeedPerSecond * dt;
       final angleNow = joint.jointAngle();
-      final angleToTurn = (desiredAngle - angleNow)
-          .clamp(-turnPerTimeStep, turnPerTimeStep)
-          .toDouble();
-      final angle = angleNow + angleToTurn;
+      final angle = angleNow + desiredAngle;
       joint.setLimits(angle, angle);
     } else {
-      joint.setLimits(0, 0);
+      // joint.setLimits(0, 0);
     }
     body.applyTorque(desiredTorque);
   }
